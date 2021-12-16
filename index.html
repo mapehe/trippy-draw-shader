@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-darkreader-mode="dynamic" data-darkreader-scheme="dark">
+<head><style class="darkreader darkreader--fallback" media="screen"></style><style class="darkreader darkreader--text" media="screen"></style><style class="darkreader darkreader--invert" media="screen">.jfk-bubble.gtx-bubble, .captcheck_answer_label > input + img, span#closed_text > img[src^="https://www.gstatic.com/images/branding/googlelogo"], span[data-href^="https://www.hcaptcha.com/"] > #icon, #bit-notification-bar-iframe, ::-webkit-calendar-picker-indicator {
+    filter: invert(100%) hue-rotate(180deg) contrast(90%) !important;
+}</style><style class="darkreader darkreader--inline" media="screen">[data-darkreader-inline-bgcolor] {
+  background-color: var(--darkreader-inline-bgcolor) !important;
+}
+[data-darkreader-inline-bgimage] {
+  background-image: var(--darkreader-inline-bgimage) !important;
+}
+[data-darkreader-inline-border] {
+  border-color: var(--darkreader-inline-border) !important;
+}
+[data-darkreader-inline-border-bottom] {
+  border-bottom-color: var(--darkreader-inline-border-bottom) !important;
+}
+[data-darkreader-inline-border-left] {
+  border-left-color: var(--darkreader-inline-border-left) !important;
+}
+[data-darkreader-inline-border-right] {
+  border-right-color: var(--darkreader-inline-border-right) !important;
+}
+[data-darkreader-inline-border-top] {
+  border-top-color: var(--darkreader-inline-border-top) !important;
+}
+[data-darkreader-inline-boxshadow] {
+  box-shadow: var(--darkreader-inline-boxshadow) !important;
+}
+[data-darkreader-inline-color] {
+  color: var(--darkreader-inline-color) !important;
+}
+[data-darkreader-inline-fill] {
+  fill: var(--darkreader-inline-fill) !important;
+}
+[data-darkreader-inline-stroke] {
+  stroke: var(--darkreader-inline-stroke) !important;
+}
+[data-darkreader-inline-outline] {
+  outline-color: var(--darkreader-inline-outline) !important;
+}
+[data-darkreader-inline-stopcolor] {
+  stop-color: var(--darkreader-inline-stopcolor) !important;
+}</style><style class="darkreader darkreader--variables" media="screen">:root {
+   --darkreader-neutral-background: #131516;
+   --darkreader-neutral-text: #d8d4cf;
+   --darkreader-selection-background: #004daa;
+   --darkreader-selection-text: #e8e6e3;
+}</style><style class="darkreader darkreader--root-vars" media="screen"></style><style class="darkreader darkreader--user-agent" media="screen">html {
+    background-color: #181a1b !important;
+}
+html, body, input, textarea, select, button {
+    background-color: #181a1b;
+}
+html, body, input, textarea, select, button {
+    border-color: #736b5e;
+    color: #e8e6e3;
+}
+a {
+    color: #3391ff;
+}
+table {
+    border-color: #545b5e;
+}
+::placeholder {
+    color: #b2aba1;
+}
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+    background-color: #555b00 !important;
+    color: #e8e6e3 !important;
+}
+::selection {
+    background-color: #004daa !important;
+    color: #e8e6e3 !important;
+}
+::-moz-selection {
+    background-color: #004daa !important;
+    color: #e8e6e3 !important;
+}</style>
+  <meta charset="utf-8">
+  <title>How to create simple feedback loop?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="stylesheet" href="demo.css"><style class="darkreader darkreader--sync" media="screen"></style>
+  <script src="./shader-web-background.min.js"></script>
+
+  <!--
+    The "feedback" shader will consume own output and render a circle on top.
+   -->
+  <script type="x-shader/x-fragment" id="feedback">
+    precision highp float;
+
+    uniform float iTime;
+    uniform vec2 iResolution;
+    uniform vec2 iClick;
+    uniform sampler2D iChannel0;
+
+    #define f 1.
+
+    float hash12(vec2 p)
+    {
+      vec3 p3  = fract(vec3(p.xyx) * .1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+
+    void main(){
+        vec2 uv = gl_FragCoord.xy / iResolution;
+        float d = length((iClick - gl_FragCoord.xy) / 1000.);
+        d *= d;
+        d *= d;
+        float m = 4.;
+        vec2 id = floor(gl_FragCoord.xy / m);
+        float as = pow(cos(100.*iTime) * sin(11.*iTime), 2.);
+        vec3 inputCol = as*.0005*vec3(.1*uv.x, pow(cos(.1*iTime), 2.), uv.y + uv.x) / d;
+
+        vec3 prev = texture2D(iChannel0, uv + .0001).rgb;
+
+        float t = -length(prev) + 1. * iTime;
+        float s = length(prev) + 1.*iTime;
+        float c = length(gl_FragCoord.xy)*.000002/length(prev);
+        for (float i = 2.0; i < 4.0; i++)
+        {
+            uv.x += c*2.*0.4 / i * cos(i * 2.0 * uv.y + t) * cos(i * 1.5 * uv.y + t);
+            uv.y += c*2.*0.4 / i * cos(i * 2.0 * uv.x + t);
+        }
+
+        prev = texture2D(iChannel0, uv + .0001).rgb;
+        //prev =+ .1*length(prev)*cos(prev);
+
+        float a = .001;
+        prev *= vec3(pow(prev.x, a), pow(prev.y, a), pow(prev.z, a));
+        vec3 col = mix(f*prev, inputCol, length(inputCol));
+        col = clamp(col, 0., 1.);
+        gl_FragColor = vec4(col, 1.);
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="psychedelia">
+    precision highp float;
+
+    uniform float iTime;
+    uniform vec2 iResolution;
+    uniform vec2 iClick;
+    uniform sampler2D iChannel0;
+
+    #define f 1.
+
+    void main(){
+        vec2 uv = gl_FragCoord.xy / iResolution;
+        vec2 gv = iClick / iResolution;
+        vec3 col = vec3(0.);
+
+        vec3 input_col = texture2D(iChannel0, uv).rgb;
+        float s = 1./length(input_col);
+        vec2 disp = vec2(.0025);
+        col.r = input_col.r;
+        col.g = texture2D(iChannel0, uv + s * disp).g;
+        col.b = texture2D(iChannel0, uv + 2. * s * disp).b;
+
+        gl_FragColor = vec4(col, 1.);
+    }
+  </script>
+
+  <!--
+    The "image" shader will just copy the "feedback" output to the canvas.
+   -->
+  <script type="x-shader/x-fragment" id="image">
+    precision highp float;
+
+    uniform vec2 iResolution;
+    uniform sampler2D iChannel0;
+
+    void main(){
+      gl_FragColor = texture2D(iChannel0, gl_FragCoord.xy / iResolution);
+    }
+  </script>
+
+  <!--
+    Now we need to calculate uniforms before each frame, and provide them to the shaders.
+   -->
+  <script>
+    document.latestx = 0;
+    document.latesty = 0;
+    window.onmousedown = (x) => {
+      document.touchdown = true;
+    };
+    window.onmousemove = (x) => {
+      if (document.touchdown) {
+        document.clickx = x.clientX;
+        document.clicky = x.clientY;
+        document.latestx = document.clickx;
+        document.latesty = document.clicky;
+      }
+    };
+    window.onmouseup = (x) => {
+      document.touchdown = false;
+    };
+
+    window.ontouchstart = (x) => {
+      document.touchdown = true;
+      document.clickx = x.touches[0].clientX;
+      document.clicky = x.touches[0].clientY;
+    }
+
+    window.ontouchmove = (x) => {
+      document.clickx = x.touches[0].clientX;
+      document.clicky = x.touches[0].clientY;
+      document.latestx = document.clickx;
+      document.latesty = document.clicky;
+    }
+
+    window.ontouchend = (x) => {
+      document.touchdown = false;
+    }
+
+    shaderWebBackground.shade({
+      onResize: (width, height) => {
+        minDimension = Math.min(width, height);
+      },
+      onBeforeFrame: () => {
+        time = performance.now() / 1000;
+        circleCenterX = Math.sin(time * .3);
+        circleCenterY = Math.cos(time * .5);
+      },
+      shaders: {
+        feedback: {
+          uniforms: {
+            iTime: (gl, loc) => gl.uniform1f(loc, performance.now() / 1000),
+            iResolution:          (gl, loc, ctx) => gl.uniform2f(loc, ctx.width, ctx.height),
+            iClick: (gl, loc, ctx) =>
+            {
+              const x = document.clickx;
+              const y = document.clicky;
+              if(!document.touchdown){
+                document.clickx = undefined;
+                document.clicky = undefined;
+              }
+              gl.uniform2f(
+                loc,
+                2 * x || 1000000,
+                2*window.innerHeight - 2 * y || 1000000
+              )
+            },
+            iChannel0:            (gl, loc, ctx) => ctx.texture(loc, ctx.buffers.feedback)
+          }
+        },
+        psychedelia: {
+          uniforms: {
+            iTime: (gl, loc) => gl.uniform1f(loc, performance.now() / 1000),
+            iResolution:          (gl, loc, ctx) => gl.uniform2f(loc, ctx.width, ctx.height),
+            iClick: (gl, loc, ctx) =>
+            {
+              const x = document.latestx;
+              const y = document.latesty;
+              if(!document.touchdown){
+                document.clickx = undefined;
+                document.clicky = undefined;
+              }
+              gl.uniform2f(
+                loc,
+                 x || 1000000,
+                window.innerHeight - y || 1000000
+              )
+            },
+            iChannel0:            (gl, loc, ctx) => ctx.texture(loc, ctx.buffers.feedback)
+          }
+        },
+        image: {
+          uniforms: {
+            iResolution:   (gl, loc, ctx) => gl.uniform2f(loc, ctx.width, ctx.height),
+            iChannel0:     (gl, loc, ctx) => ctx.texture(loc, ctx.buffers.psychedelia)
+          }
+        }
+      }
+    });
+  </script>
+</head>
+<body style="background: transparent;">
+<a href="https://github.com/mapehe/trippy-draw-shader">github</a>
+</body></html>
