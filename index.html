@@ -198,6 +198,7 @@ select:-webkit-autofill {
     };
 
     window.ontouchstart = (x) => {
+      document.touch = true;
       document.touchdown = true;
       document.clickx = x.touches[0].clientX;
       document.clicky = x.touches[0].clientY;
@@ -236,10 +237,11 @@ select:-webkit-autofill {
                 document.clickx = undefined;
                 document.clicky = undefined;
               }
+              const mul = document.touch ? 3 : 2;
               gl.uniform2f(
                 loc,
-                2 * x || 1000000,
-                2*window.innerHeight - 2 * y || 1000000
+                mul * x || 1000000,
+                mul*window.innerHeight - mul * y || 1000000
               )
             },
             iChannel0:            (gl, loc, ctx) => ctx.texture(loc, ctx.buffers.feedback)
