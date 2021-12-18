@@ -119,7 +119,7 @@ select:-webkit-autofill {
 
         float t = -length(prev) + 1. * iTime;
         float s = length(prev) + 1.*iTime;
-        float c = length(gl_FragCoord.xy)*.000002/length(prev);
+        float c = .002/length(prev);
         for (float i = 2.0; i < 4.0; i++)
         {
             uv.x += c*2.*0.4 / i * cos(i * 2.0 * uv.y + t) * cos(i * 1.5 * uv.y + t);
